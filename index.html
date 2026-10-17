@@ -2,120 +2,89 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>FluentBT — v3 + 3 примера из книги</title>
+<link rel="icon" href="data:,">
+<title>FluentBT — Ровер-доставщик</title>
 <style>
   body { font-family:'Segoe UI',sans-serif; background:#1e1e24; color:#eee; padding:14px; margin:0; }
-  .tabs { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
-  .tab { background:#2a2a32; color:#aaa; border:none; padding:10px 16px; border-radius:6px 6px 0 0; cursor:pointer; font-weight:bold; font-size:13px; transition: background .2s; }
-  .tab.active { background:#4fc3f7; color:#1e1e24; }
-  .tab:hover { filter:brightness(1.15); }
   .main { display:flex; gap:14px; align-items:flex-start; }
   .panel { background:#2a2a32; padding:14px; border-radius:8px; }
-  .code { flex:1; min-width:0; }
-  .ctrl { width:400px; flex-shrink:0; }
-  pre { background:#111; padding:12px; border-radius:6px; font-family:'Courier New',monospace; font-size:12px; line-height:1.5; color:#a9b7c6; margin:0; white-space:pre; overflow-x:auto; max-height:360px; }
+  .code { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .ctrl { width:420px; flex-shrink:0; }
+  pre { background:#111; padding:10px; border-radius:6px; font-family:'Courier New',monospace; font-size:11px; line-height:1.45; color:#a9b7c6; margin:0; white-space:pre; overflow:auto; max-height:300px; }
   h3 { margin:0 0 10px; color:#4fc3f7; border-bottom:1px solid #444; padding-bottom:6px; font-size:15px; }
-  .stat { display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; }
+  .stat { display:flex; justify-content:space-between; margin-bottom:4px; font-size:12px; }
   .stat span { color:#ffb74d; font-weight:bold; }
-  button { width:100%; padding:8px; margin-bottom:5px; background:#00897b; color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px; }
+  button { width:100%; padding:7px; margin-bottom:4px; background:#00897b; color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px; }
   button.danger { background:#e53935; }
   button.warn   { background:#fb8c00; }
   button.sim    { background:#3949ab; }
   button.sim.running { background:#c62828; }
   button:hover { filter:brightness(1.15); }
-  #logs { background:#111; height:200px; overflow-y:auto; padding:8px; border-radius:6px; font-family:monospace; font-size:11px; color:#81c784; }
+  #logs { background:#111; height:220px; overflow-y:auto; padding:8px; border-radius:6px; font-family:monospace; font-size:11px; color:#81c784; margin-top:6px; }
   .log { border-left:3px solid #81c784; padding-left:6px; margin-bottom:2px; }
   .log.err { color:#e57373; border-color:#e57373; }
   .log.sys { color:#64b5f6; border-color:#64b5f6; }
-  .grid { display:grid; gap:2px; background:#000; padding:5px; border-radius:6px; margin-bottom:10px; }
-  .grid .cell { aspect-ratio:1; background:#1a1a2a; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:16px; position:relative; }
-  .grid .cell.wall { background:#333; }
-  .grid .cell.goal { background:#1b5e20; box-shadow:inset 0 0 6px #4caf50; }
-  .grid .cell.goal-done { background:#4caf50; box-shadow:0 0 12px #81c784; }
-  .grid .cell.holding { background:#1b5e20; box-shadow:inset 0 0 6px #ffb74d; }
-  .pill { width:5px; height:5px; background:#fff; border-radius:50%; }
-  .power-pill { width:10px; height:10px; background:#ffb74d; border-radius:50%; box-shadow:0 0 6px #ffb74d; }
-  .banner { background:#1b5e20; color:#fff; padding:6px 10px; border-radius:4px; margin-bottom:8px; font-size:13px; text-align:center; display:none; }
-  .banner.show { display:block; }
+
+  .map-grid { display:grid; gap:2px; background:#000; padding:4px; border-radius:6px; margin-bottom:10px; grid-template-columns:repeat(11, 1fr); }
+  .map-grid .cell { aspect-ratio:1; background:#1a1a2a; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:16px; position:relative; }
+  .cell.base    { background:#1b5e20; }
+  .cell.charger { background:#1565c0; }
+  .cell.client  { background:#6a1b9a; }
+  .cell.rover   { background:#ef6c00 !important; box-shadow:0 0 8px #ffb74d; }
+  .cell.rover.charging { background:#43a047 !important; box-shadow:0 0 12px #81c784; animation: pulse 0.8s infinite alternate; }
+  @keyframes pulse { from { opacity:0.85; } to { opacity:1; } }
+
+  .battery-bar { background:#111; border-radius:4px; height:14px; overflow:hidden; margin-bottom:8px; }
+  .battery-fill { height:100%; background:linear-gradient(90deg, #e53935, #fb8c00, #4caf50); transition:width 0.3s; }
 </style>
 </head>
 <body>
 
-<div class="tabs">
-  <button class="tab" id="mode-warrior" onclick="setMode('warrior')">⚔️ Воин</button>
-  <button class="tab" id="mode-pacman" onclick="setMode('pacman')">🟡 Pac-Man (книга §1.4)</button>
-  <button class="tab active" id="mode-manipulator" onclick="setMode('manipulator')">🤖 Манипулятор (книга §1.5)</button>
-</div>
-
 <div class="main">
   <div class="panel code">
-    <h3 id="program-title">Программа</h3>
+    <h3>Программа ровера</h3>
     <pre id="src"></pre>
-    <h3 style="margin-top:14px">Лог</h3>
+    <h3 style="margin-top:12px">Лог</h3>
     <div id="logs"></div>
   </div>
 
   <div class="panel ctrl">
-    <div id="world-warrior" style="display:none">
-      <h3>Мир</h3>
-      <div class="stat">Дистанция до врага: <span id="ui-d">15</span></div>
-      <div class="stat">HP: <span id="ui-hp">100</span></div>
-      <div class="stat">Голоден: <span id="ui-h">нет</span></div>
-      <div class="stat">Устал: <span id="ui-t">нет</span></div>
-      <div class="stat">Есть еда: <span id="ui-f">да</span></div>
-      <div class="stat">Тиков охоты: <span id="ui-hunt">0</span></div>
-    </div>
+    <h3>Статус</h3>
+    <div class="stat">Батарея: <span id="ui-battery">100</span>%</div>
+    <div class="battery-bar"><div class="battery-fill" id="ui-battery-bar" style="width:100%"></div></div>
+    <div class="stat">GPS: <span id="ui-gps">OK</span></div>
+    <div class="stat">Заказ: <span id="ui-order">нет</span></div>
+    <div class="stat">Груз: <span id="ui-cargo">нет</span></div>
+    <div class="stat">Флаги: <span id="ui-flags">—</span></div>
 
-    <div id="world-pacman" style="display:none">
-      <h3>Pac-Man</h3>
-      <div id="pacman-grid" class="grid" style="grid-template-columns:repeat(11,1fr)"></div>
-      <div class="stat">Таблетки: <span id="ui-pills">0</span></div>
-      <div class="stat">Power: <span id="ui-power">0</span></div>
-    </div>
-
-    <div id="world-manipulator">
-      <div id="banner-done" class="banner">✅ Задача выполнена — куб на цели</div>
-      <h3>Манипулятор</h3>
-      <div id="manipulator-grid" class="grid" style="grid-template-columns:repeat(12,1fr)"></div>
-      <div class="stat">Позиция робота: <span id="ui-robot">(1,5)</span></div>
-      <div class="stat">Позиция куба: <span id="ui-cube">(5,2)</span></div>
-      <div class="stat">Держит куб: <span id="ui-holding">нет</span></div>
+    <h3 style="margin-top:14px">Карта</h3>
+    <div id="map-grid" class="map-grid"></div>
+    <div class="stat" style="font-size:11px; color:#888">
+      🏠 база · 🔌 зарядка · 🏢 клиент · 🚚 ровер
     </div>
 
     <h3 style="margin-top:14px">Симуляция</h3>
     <button id="btn-sim" class="sim" onclick="toggleSim()">▶ Старт</button>
     <button class="warn" onclick="tickOnce()">⏭ Один тик</button>
-    <button class="warn" onclick="resetWorld()">🔄 Сбросить мир</button>
+    <button class="warn" onclick="resetWorld()">🔄 Сброс</button>
 
-    <div id="events-warrior" style="display:none; margin-top:12px">
-      <h3>События</h3>
-      <button onclick="warriorW('enemy')">👹 Враг вплотную (2м)</button>
-      <button onclick="warriorW('far')">💨 Враг далеко (20м)</button>
-      <button class="danger" onclick="warriorW('dmg')">💥 Урон (-80 HP)</button>
-      <button onclick="warriorW('heal')">❤️ Лечить (100 HP)</button>
-      <button onclick="warriorW('hungry')">🍖 Проголодался</button>
-      <button onclick="warriorW('tired')">😴 Устал</button>
-    </div>
-
-    <div id="events-pacman" style="display:none; margin-top:12px">
-      <h3>События</h3>
-      <button onclick="pacmanW('power')">⚡ Power pill (20 тиков)</button>
-      <button onclick="pacmanW('ghost-near')">👻 Призрак вплотную</button>
-      <button onclick="pacmanW('ghost-far')">💨 Призрак далеко</button>
-    </div>
-
-    <div id="events-manipulator" style="margin-top:12px">
-      <h3>События</h3>
-      <button class="danger" onclick="manipulatorW('drop')">💨 Куб выпал из руки</button>
-      <button onclick="manipulatorW('teleport-cube')">🎲 Переместить куб случайно</button>
-      <button onclick="manipulatorW('teleport-goal')">🎯 Переместить цель</button>
-    </div>
+    <h3 style="margin-top:14px">События</h3>
+    <button onclick="triggerEvent('new-order')">📦 Новый заказ</button>
+    <button onclick="triggerEvent('client-out')">👤 Клиент вышел</button>
+    <button class="danger" onclick="triggerEvent('client-cancel')">❌ Клиент отменил</button>
+    <button class="danger" onclick="triggerEvent('impact')">💥 Удар</button>
+    <button class="warn" onclick="triggerEvent('obstacle')">🚧 Препятствие</button>
+    <button class="warn" onclick="triggerEvent('low-battery')">🔋 Батарея = 20%</button>
+    <button class="warn" onclick="triggerEvent('gps-lost')">📡 Потерять GPS</button>
+    <button onclick="triggerEvent('gps-ok')">📡 Восстановить GPS</button>
+    <button onclick="triggerEvent('slip')">🛞 Колёса буксуют</button>
+    <button onclick="triggerEvent('dispatcher')">🎮 Диспетчер</button>
   </div>
 </div>
 
 <script>
 // ============================================================
-//  ЯДРО (v3)
+//  FluentBT — ядро (готово к выносу в отдельный модуль)
 // ============================================================
 const S = { SUCCESS: 'SUCCESS', FAILURE: 'FAILURE', RUNNING: 'RUNNING' };
 
@@ -142,16 +111,43 @@ function parseDuration(str) {
   return n;
 }
 
-class FluentBT {
-  constructor(script, reg) {
-    this.reg = reg;
-    this.bb = {};
-    this.state = new Map();
-    this.running = new Map();
-    this.program = this.parse(script);
+function isConditionExpr(text, reg) {
+  if (text.startsWith('not ')) {
+    const inner = extractBlocks(text.slice(4))[0] || text.slice(4).trim();
+    return isConditionExpr(inner, reg);
   }
-  parse(script) {
-    const lines = script.split('\n').map(l => l.replace(/\/\/.*$/, '').trim()).filter(Boolean);
+  if (text.startsWith('all ') || text.startsWith('any ')) {
+    const parts = extractBlocks(text.slice(4));
+    return parts.length > 0 && parts.every(p => isConditionExpr(p, reg));
+  }
+  const m = text.match(/^(?:retry(?::\S+)?|repeat(?::\S+)?|wait:\S+|timeout:\S+)\s+(.+)$/);
+  if (m) {
+    const inner = extractBlocks(m[1])[0] || m[1].trim();
+    return isConditionExpr(inner, reg);
+  }
+  const e = reg[text];
+  return !!(e && e.type === 'condition');
+}
+
+class FluentBT {
+  constructor(source, registry, options = {}) {
+    this.reg = registry;
+    this.bb  = options.blackboard ?? {};
+    this.now = options.now ?? (() => Date.now());
+    this.state   = new Map();
+    this.running = new Map();
+    this.program = this.parse(source);
+  }
+
+  reset() {
+    this.state.clear();
+    this.running.clear();
+  }
+
+  parse(source) {
+    const lines = source.split('\n')
+      .map(l => l.replace(/\/\/.*$/, '').trim())
+      .filter(Boolean);
     const program = [];
     let currentGroup = null;
     let nextId = 0;
@@ -161,45 +157,30 @@ class FluentBT {
       if (!blocks.length) continue;
       if (blocks.length > 3) throw new Error(`Больше 3 блоков: ${line}`);
       if (blocks.length === 1) {
-        if (this.isCondition(blocks[0])) {
+        if (isConditionExpr(blocks[0], this.reg)) {
           currentGroup = { header: node(blocks[0]), rules: [] };
           program.push(currentGroup);
         } else {
-          this.pushRule(program, currentGroup, { cond: null, onTrue: node(blocks[0]), onFalse: null });
+          this._pushRule(program, currentGroup, { cond: null, onTrue: node(blocks[0]), onFalse: null });
         }
       } else if (blocks.length === 2) {
-        this.pushRule(program, currentGroup, { cond: node(blocks[0]), onTrue: node(blocks[1]), onFalse: null });
+        this._pushRule(program, currentGroup, { cond: node(blocks[0]), onTrue: node(blocks[1]), onFalse: null });
       } else {
-        this.pushRule(program, currentGroup, { cond: node(blocks[0]), onTrue: node(blocks[1]), onFalse: node(blocks[2]) });
+        this._pushRule(program, currentGroup, { cond: node(blocks[0]), onTrue: node(blocks[1]), onFalse: node(blocks[2]) });
         currentGroup = null;
       }
     }
     return program;
   }
-  pushRule(program, group, rule) {
+
+  _pushRule(program, group, rule) {
     if (group) group.rules.push(rule);
     else program.push({ header: null, rules: [rule] });
   }
-  isCondition(text) {
-    if (text.startsWith('not ')) {
-      const inner = extractBlocks(text.slice(4))[0] || text.slice(4).trim();
-      return this.isCondition(inner);
-    }
-    if (text.startsWith('all ') || text.startsWith('any ')) {
-      const parts = extractBlocks(text.slice(4));
-      return parts.length > 0 && parts.every(p => this.isCondition(p));
-    }
-    const m = text.match(/^(?:retry(?::\S+)?|repeat(?::\S+)?|wait:\S+|timeout:\S+)\s+(.+)$/);
-    if (m) {
-      const inner = extractBlocks(m[1])[0] || m[1].trim();
-      return this.isCondition(inner);
-    }
-    const e = this.reg[text];
-    return !!(e && e.type === 'condition');
-  }
+
   tick() {
     const visited = new Set();
-    const result = this.run(visited);
+    const result = this._run(visited);
     for (const [id, info] of this.running) {
       if (!visited.has(id)) {
         if (info.abort) try { info.abort(); } catch (e) {}
@@ -211,21 +192,22 @@ class FluentBT {
     }
     return result;
   }
-  run(visited) {
+
+  _run(visited) {
     for (const g of this.program) {
       if (g.header) {
         visited.add(g.header.id);
-        const h = this.evalBlock(g.header, visited);
+        const h = this._eval(g.header, visited);
         if (h === S.FAILURE) continue;
         if (h === S.RUNNING) return S.RUNNING;
         for (const r of g.rules) {
-          const s = this.execRule(r, visited);
+          const s = this._execRule(r, visited);
           if (s === S.SUCCESS) return S.SUCCESS;
           if (s === S.RUNNING) return S.RUNNING;
         }
       } else {
         for (const r of g.rules) {
-          const s = this.execRule(r, visited);
+          const s = this._execRule(r, visited);
           if (s === S.SUCCESS) return S.SUCCESS;
           if (s === S.RUNNING) return S.RUNNING;
         }
@@ -233,31 +215,34 @@ class FluentBT {
     }
     return S.FAILURE;
   }
-  execRule(r, visited) {
+
+  _execRule(r, visited) {
     if (r.cond) {
       visited.add(r.cond.id);
-      const c = this.evalBlock(r.cond, visited);
+      const c = this._eval(r.cond, visited);
       if (c === S.RUNNING) return S.RUNNING;
       if (c === S.SUCCESS) {
         visited.add(r.onTrue.id);
-        return this.evalBlock(r.onTrue, visited);
+        return this._eval(r.onTrue, visited);
       }
       if (r.onFalse) {
         visited.add(r.onFalse.id);
-        return this.evalBlock(r.onFalse, visited);
+        return this._eval(r.onFalse, visited);
       }
       return S.FAILURE;
     }
     visited.add(r.onTrue.id);
-    return this.evalBlock(r.onTrue, visited);
+    return this._eval(r.onTrue, visited);
   }
-  evalBlock(node, visited) {
+
+  _eval(node, visited) {
     const text = node.text.trim();
     const id = node.id;
     visited.add(id);
+
     if (text.startsWith('not ')) {
       const inner = extractBlocks(text.slice(4))[0] || text.slice(4).trim();
-      const s = this.evalBlock({ text: inner, id: `${id}/not` }, visited);
+      const s = this._eval({ text: inner, id: `${id}/not` }, visited);
       if (s === S.SUCCESS) return S.FAILURE;
       if (s === S.FAILURE) return S.SUCCESS;
       return s;
@@ -265,7 +250,7 @@ class FluentBT {
     if (text.startsWith('any ')) {
       const parts = extractBlocks(text.slice(4));
       for (let i = 0; i < parts.length; i++) {
-        const s = this.evalBlock({ text: parts[i], id: `${id}/any/${i}` }, visited);
+        const s = this._eval({ text: parts[i], id: `${id}/any/${i}` }, visited);
         if (s === S.SUCCESS) return S.SUCCESS;
         if (s === S.RUNNING) return S.RUNNING;
       }
@@ -274,20 +259,22 @@ class FluentBT {
     if (text.startsWith('all ')) {
       const parts = extractBlocks(text.slice(4));
       for (let i = 0; i < parts.length; i++) {
-        const s = this.evalBlock({ text: parts[i], id: `${id}/all/${i}` }, visited);
+        const s = this._eval({ text: parts[i], id: `${id}/all/${i}` }, visited);
         if (s === S.FAILURE) return S.FAILURE;
         if (s === S.RUNNING) return S.RUNNING;
       }
       return S.SUCCESS;
     }
+
     let m = text.match(/^retry(?::(\d+))?\s+(.+)$/);
-    if (m) return this.retry(m[1] === undefined ? Infinity : +m[1], m[2], id, visited);
+    if (m) return this._retry(m[1] === undefined ? Infinity : +m[1], m[2], id, visited);
     m = text.match(/^repeat(?::(\d+))?\s+(.+)$/);
-    if (m) return this.repeat(m[1] === undefined ? Infinity : +m[1], m[2], id, visited);
+    if (m) return this._repeat(m[1] === undefined ? Infinity : +m[1], m[2], id, visited);
     m = text.match(/^wait:(\S+)\s+(.+)$/);
-    if (m) return this.wait(parseDuration(m[1]), m[2], id, visited);
+    if (m) return this._wait(parseDuration(m[1]), m[2], id, visited);
     m = text.match(/^timeout:(\S+)\s+(.+)$/);
-    if (m) return this.timeout(parseDuration(m[1]), m[2], id, visited);
+    if (m) return this._timeout(parseDuration(m[1]), m[2], id, visited);
+
     const e = this.reg[text];
     if (!e) throw new Error(`Неизвестный блок: ${text}`);
     const result = e.fn(this.bb);
@@ -298,9 +285,10 @@ class FluentBT {
     }
     return result;
   }
-  retry(n, innerText, id, visited) {
+
+  _retry(n, innerText, id, visited) {
     const inner = extractBlocks(innerText)[0] || innerText.trim();
-    const s = this.evalBlock({ text: inner, id: `${id}/retry/child` }, visited);
+    const s = this._eval({ text: inner, id: `${id}/retry/child` }, visited);
     if (s === S.SUCCESS) { this.state.delete(id); return S.SUCCESS; }
     if (s === S.FAILURE) {
       if (n === Infinity) return S.RUNNING;
@@ -313,9 +301,10 @@ class FluentBT {
     }
     return s;
   }
-  repeat(n, innerText, id, visited) {
+
+  _repeat(n, innerText, id, visited) {
     const inner = extractBlocks(innerText)[0] || innerText.trim();
-    const s = this.evalBlock({ text: inner, id: `${id}/repeat/child` }, visited);
+    const s = this._eval({ text: inner, id: `${id}/repeat/child` }, visited);
     if (s === S.FAILURE) { this.state.delete(id); return S.FAILURE; }
     if (s === S.SUCCESS) {
       if (n === Infinity) return S.RUNNING;
@@ -327,28 +316,268 @@ class FluentBT {
     }
     return s;
   }
-  wait(sec, innerText, id, visited) {
+
+  _wait(sec, innerText, id, visited) {
     const inner = extractBlocks(innerText)[0] || innerText.trim();
-    if (!this.state.has(id)) this.state.set(id, { deadline: Date.now() + sec * 1000 });
+    if (!this.state.has(id)) this.state.set(id, { deadline: this.now() + sec * 1000 });
     const st = this.state.get(id);
-    if (Date.now() < st.deadline) return S.RUNNING;
+    if (this.now() < st.deadline) return S.RUNNING;
     this.state.delete(id);
-    return this.evalBlock({ text: inner, id: `${id}/wait/child` }, visited);
+    return this._eval({ text: inner, id: `${id}/wait/child` }, visited);
   }
-  timeout(sec, innerText, id, visited) {
+
+  _timeout(sec, innerText, id, visited) {
     const inner = extractBlocks(innerText)[0] || innerText.trim();
-    if (!this.state.has(id)) this.state.set(id, { deadline: Date.now() + sec * 1000 });
+    if (!this.state.has(id)) this.state.set(id, { deadline: this.now() + sec * 1000 });
     const st = this.state.get(id);
-    if (Date.now() >= st.deadline) { this.state.delete(id); return S.FAILURE; }
-    const s = this.evalBlock({ text: inner, id: `${id}/timeout/child` }, visited);
+    if (this.now() >= st.deadline) { this.state.delete(id); return S.FAILURE; }
+    const s = this._eval({ text: inner, id: `${id}/timeout/child` }, visited);
     if (s !== S.RUNNING) this.state.delete(id);
     return s;
   }
 }
 
 // ============================================================
-//  UTILS
+//  МИР
 // ============================================================
+const MAP = {
+  base:    { x: 1, y: 2 },
+  charger: { x: 1, y: 0 },
+  client:  { x: 9, y: 2 },
+};
+const MAP_W = 11, MAP_H = 5;
+
+const world = {
+  rover:           { x: MAP.base.x, y: MAP.base.y },
+  battery:         100,
+  gpsOk:           true,
+  impact:          false,
+  obstacleNear:    false,
+  wheelsSlipping:  false,
+  wheelsRetries:   0,
+  frozen:          false,
+  sirenOn:         false,
+  orderInProgress: false,
+  orderIssued:     false,
+  orderCancelled:  false,
+  dispatcherControl: false,
+  cargoInside:     true,
+  clientOut:       false,
+  routeToClient:   false,
+  routeToCharger:  false,
+};
+
+function at(pos) {
+  return world.rover.x === pos.x && world.rover.y === pos.y;
+}
+
+function moveToward(target) {
+  if (at(target)) return false;
+  const dx = Math.sign(target.x - world.rover.x);
+  const dy = Math.sign(target.y - world.rover.y);
+  if (dx !== 0) world.rover.x += dx;
+  else if (dy !== 0) world.rover.y += dy;
+  return true;
+}
+
+// ============================================================
+//  РЕГИСТР
+// ============================================================
+const registry = {
+  // --- Условия ---
+  "ДатчикУдараАктивирован":   { type:'condition', fn: () => world.impact ? S.SUCCESS : S.FAILURE },
+  "ПрепятствиеБлизко":        { type:'condition', fn: () => world.obstacleNear ? S.SUCCESS : S.FAILURE },
+  "БатареяКритическая":       { type:'condition', fn: () => world.battery < 30 ? S.SUCCESS : S.FAILURE },
+  "НаЗарядке":                { type:'condition', fn: () => at(MAP.charger) ? S.SUCCESS : S.FAILURE },
+  "СигналGPSВНорме":          { type:'condition', fn: () => world.gpsOk ? S.SUCCESS : S.FAILURE },
+  "КолесаБуксуют":            { type:'condition', fn: () => world.wheelsSlipping ? S.SUCCESS : S.FAILURE },
+  "РоверНаБазе":              { type:'condition', fn: () => at(MAP.base) ? S.SUCCESS : S.FAILURE },
+  "ПрибылВТочкуДоставки":     { type:'condition', fn: () => at(MAP.client) ? S.SUCCESS : S.FAILURE },
+  "КлиентВышел":              { type:'condition', fn: () => world.clientOut ? S.SUCCESS : S.FAILURE },
+  "ЗаказВыдан":               { type:'condition', fn: () => world.orderIssued ? S.SUCCESS : S.FAILURE },
+  "ЗаказОтмененКлиентом":     { type:'condition', fn: () => world.orderCancelled ? S.SUCCESS : S.FAILURE },
+  "УправлениеДиспетчером":    { type:'condition', fn: () => world.dispatcherControl ? S.SUCCESS : S.FAILURE },
+  "ЗаказВПути":               { type:'condition', fn: () => world.orderInProgress ? S.SUCCESS : S.FAILURE },
+  "ГрузВнутри":               { type:'condition', fn: () => world.cargoInside ? S.SUCCESS : S.FAILURE },
+  "МаршрутПостроенДоКлиента": { type:'condition', fn: () => world.routeToClient ? S.SUCCESS : S.FAILURE },
+  "МаршрутПостроенДоЗарядки": { type:'condition', fn: () => world.routeToCharger ? S.SUCCESS : S.FAILURE },
+  "ОжиданиеЗаказа":           { type:'condition', fn: () =>
+    (!world.orderInProgress && !world.orderIssued && !world.orderCancelled && !world.dispatcherControl)
+      ? S.SUCCESS : S.FAILURE },
+
+  // --- Действия ---
+  "ЗаблокироватьКолеса": { type:'action', fn: () => {
+    if (!world.frozen) log('🔒 Колёса заблокированы', 'err');
+    world.frozen = true; return S.SUCCESS;
+  }},
+  "ВключитьСирену": { type:'action', fn: () => {
+    if (!world.sirenOn) log('🚨 Сирена включена', 'err');
+    world.sirenOn = true; return S.SUCCESS;
+  }},
+  "ОтправитьСигналSOS": { type:'action', fn: () => {
+    if (world.impact) {
+      log('📡 SOS отправлен', 'err');
+      world.impact = false;
+    }
+    return S.SUCCESS;
+  }},
+
+  "ЭкстренноеТорможение": { type:'action', fn: () => {
+    if (!world.frozen) log('🛑 Экстренное торможение');
+    world.frozen = true; return S.SUCCESS;
+  }},
+
+  "НачатьЗарядку": { type:'action', fn: () => {
+    world.battery = Math.min(100, world.battery + 10);
+    if (world.battery >= 100) {
+      log('🔌 Заряжено до 100%', 'sys');
+      return S.SUCCESS;
+    }
+    return S.RUNNING;
+  }},
+  "ПостроитьМаршрутДоЗарядки": { type:'action', fn: () => {
+    if (!world.routeToCharger) log('🗺️ Маршрут до зарядки');
+    world.routeToCharger = true; return S.SUCCESS;
+  }},
+  "ЕхатьНаЗарядку": { type:'action', fn: () => {
+    if (world.frozen) return S.FAILURE;
+    if (moveToward(MAP.charger)) world.battery = Math.max(0, world.battery - 2);
+    return S.SUCCESS;
+  }},
+
+  "ВключитьЛидары": { type:'action', fn: () => S.SUCCESS },
+  "ОтползтиНазадПоЛидарам": { type:'action', fn: () => {
+    if (world.frozen) return S.FAILURE;
+    const before = { ...world.rover };
+    moveToward(MAP.base);
+    if (before.x === world.rover.x && before.y === world.rover.y) return S.FAILURE;
+    log('⬅️ Отполз назад по лидарам');
+    return S.SUCCESS;
+  }},
+  "ОстановитьсяЖдатьСигнал": { type:'action', fn: () => S.SUCCESS },
+
+  "ВключитьПовышеннуюПередачу": { type:'action', fn: () => {
+    log('⚙️ Повышенная передача');
+    return S.SUCCESS;
+  }},
+  "РаскачкаВпередНазад": { type:'action', fn: () => {
+    world.wheelsRetries++;
+    if (world.wheelsRetries >= 2) {
+      world.wheelsSlipping = false;
+      world.wheelsRetries = 0;
+      log('🛞 Выбрались!', 'sys');
+      return S.SUCCESS;
+    }
+    log(`🛞 Раскачка ${world.wheelsRetries}/2`);
+    return S.FAILURE;
+  }},
+  "Остановиться": { type:'action', fn: () => S.SUCCESS },
+  "ВызватьДиспетчераУдаленно": { type:'action', fn: () => {
+    if (!world.dispatcherControl) log('📞 Диспетчер вызван', 'err');
+    world.dispatcherControl = true;
+    return S.SUCCESS;
+  }},
+
+  "ВстатьВРежимОжидания": { type:'action', fn: () => {
+    if (world.orderIssued || world.orderCancelled || world.dispatcherControl) {
+      log('💤 Ровер в режиме ожидания', 'sys');
+    }
+    world.orderIssued = false;
+    world.orderCancelled = false;
+    world.dispatcherControl = false;
+    world.routeToClient = false;
+    world.routeToCharger = false;
+    world.frozen = false;
+    world.sirenOn = false;
+    return S.SUCCESS;
+  }},
+  "ЕхатьНаБазу": { type:'action', fn: () => {
+    if (world.frozen) return S.FAILURE;
+    if (moveToward(MAP.base)) world.battery = Math.max(0, world.battery - 2);
+    return S.SUCCESS;
+  }},
+
+  "ОткрытьКрышкуВыдатьЗаказ": { type:'action', fn: () => {
+    world.orderIssued = true;
+    world.orderInProgress = false;
+    world.cargoInside = false;
+    world.clientOut = false;
+    world.routeToClient = false;
+    log('📦 Заказ выдан!', 'sys');
+    return S.SUCCESS;
+  }},
+  "ПодатьЗвуковойСигнал": { type:'action', fn: () => {
+    log('🔔 Бип (ждём клиента)');
+    return S.SUCCESS;
+  }},
+
+  "ПостроитьМаршрутДоКлиента": { type:'action', fn: () => {
+    if (!world.routeToClient) log('🗺️ Маршрут до клиента');
+    world.routeToClient = true;
+    return S.SUCCESS;
+  }},
+  "ЕхатьПоМаршруту": { type:'action', fn: () => {
+    if (world.frozen) return S.FAILURE;
+    if (moveToward(MAP.client)) world.battery = Math.max(0, world.battery - 2);
+    return S.SUCCESS;
+  }},
+};
+
+// ============================================================
+//  ПРОГРАММА
+// ============================================================
+const PROGRAM = `// Ровер-доставщик — программа
+
+// 1. Крэш
+[ДатчикУдараАктивирован]
+[all [ЗаблокироватьКолеса] [ВключитьСирену] [ОтправитьСигналSOS]]
+
+// 2. Экстренное торможение
+[ПрепятствиеБлизко]
+[ЭкстренноеТорможение]
+
+// 3. Критическая батарея — заряжаемся
+[БатареяКритическая]
+[НаЗарядке] [НачатьЗарядку]
+
+// 4. Критическая батарея — едем на зарядку
+[all [БатареяКритическая] [not [НаЗарядке]]]
+[МаршрутПостроенДоЗарядки] [ЕхатьНаЗарядку] [ПостроитьМаршрутДоЗарядки]
+
+// 5. GPS потерян
+[not [СигналGPSВНорме]]
+[all [ВключитьЛидары] [retry:3 [wait:1s [ОтползтиНазадПоЛидарам]]]] [ОстановитьсяЖдатьСигнал]
+
+// 6. Буксовка
+[КолесаБуксуют]
+[retry:3 [all [ВключитьПовышеннуюПередачу] [РаскачкаВпередНазад]]] [all [Остановиться] [ВызватьДиспетчераУдаленно]]
+
+// 7. Заказ завершён — на базу
+[any [УправлениеДиспетчером] [ЗаказВыдан] [ЗаказОтмененКлиентом]]
+[РоверНаБазе] [ВстатьВРежимОжидания] [ЕхатьНаБазу]
+
+// 8. Прибыл к клиенту
+[all [ПрибылВТочкуДоставки] [not [ЗаказВыдан]]]
+[КлиентВышел] [ОткрытьКрышкуВыдатьЗаказ] [timeout:10s [repeat [wait:1s [ПодатьЗвуковойСигнал]]]]
+
+// 9. Доставка в процессе
+[all [ЗаказВПути] [ГрузВнутри]]
+[not [МаршрутПостроенДоКлиента]] [ПостроитьМаршрутДоКлиента]
+[МаршрутПостроенДоКлиента] [retry [ЕхатьПоМаршруту]]
+
+// 10. Ожидание
+[ОжиданиеЗаказа]
+[ЕхатьНаБазу]`;
+
+// ============================================================
+//  СИМУЛЯЦИЯ
+// ============================================================
+let bt = null;
+let simTimer = null;
+let tickCount = 0;
+
+const TICK_MS = 300;
+
 function log(m, cls) {
   const c = document.getElementById('logs');
   const t = new Date().toLocaleTimeString('ru-RU', { hour12: false });
@@ -357,425 +586,195 @@ function log(m, cls) {
   c.scrollTop = c.scrollHeight;
 }
 
-// ============================================================
-//  ВОИН (Variant A)
-// ============================================================
-let D = 15, HP = 100, hungry = false, tired = false, hasFood = true, huntTicks = 0;
-
-const PROG_WARRIOR = `// Safety hoisted (§3.4)
-[all [ЗдоровьеМало] [ВрагРядом]]
-[Отступить]
-
-[ВрагОченьБлизко]
-[retry:3 [Атаковать]]
-[Отступить]
-
-[ВрагРядом]
-[not [ВрагОченьБлизко]] [Приблизиться]
-
-[Голоден]
-[ЕстьЕда] [Поесть] [retry [Охота]]
-
-[Устал] [Спать] [Блуждать]`;
-
-const regWarrior = {
-  "ВрагРядом":       { type:'condition', fn: () => D < 15 ? S.SUCCESS : S.FAILURE },
-  "ВрагОченьБлизко": { type:'condition', fn: () => D <= 2 ? S.SUCCESS : S.FAILURE },
-  "ЗдоровьеМало":    { type:'condition', fn: () => HP < 30 ? S.SUCCESS : S.FAILURE },
-  "Голоден":         { type:'condition', fn: () => hungry ? S.SUCCESS : S.FAILURE },
-  "ЕстьЕда":         { type:'condition', fn: () => hasFood ? S.SUCCESS : S.FAILURE },
-  "Устал":           { type:'condition', fn: () => tired ? S.SUCCESS : S.FAILURE },
-  "Атаковать": { type:'action', fn: () => {
-    if (Math.random() > 0.4) { log('⚔️ Удар! Враг отброшен.'); D = 20; return S.SUCCESS; }
-    log('❌ Промах.'); return S.FAILURE;
-  }},
-  "Отступить": { type:'action', fn: () => { log('🏃 Воин отступает.'); D = 20; return S.SUCCESS; }},
-  "Приблизиться": { type:'action', fn: () => { D = Math.max(2, D - 3); return S.SUCCESS; }},
-  "Поесть": { type:'action', fn: () => { hungry = false; hasFood = false; log('🍖 Поел.'); return S.SUCCESS; }},
-  "Охота": {
-    type:'action',
-    fn: () => {
-      huntTicks++;
-      if (huntTicks < 2) { log('🏹 Выслеживает...'); return S.FAILURE; }
-      huntTicks = 0; hungry = false; hasFood = true; log('🏹 Удачная охота!');
-      return S.SUCCESS;
-    },
-    abort: () => { huntTicks = 0; log('🚨 Охота прервана.', 'err'); }
-  },
-  "Спать": { type:'action', fn: () => { tired = false; log('😴 Поспал.'); return S.SUCCESS; }},
-  "Блуждать": { type:'action', fn: () => S.SUCCESS },
-};
-
-function tickWarrior() {
-  try { bt.tick(); } catch (e) { log('⚠️ ' + e.message, 'err'); }
-  document.getElementById('ui-d').textContent    = D;
-  document.getElementById('ui-hp').textContent   = HP;
-  document.getElementById('ui-h').textContent    = hungry ? 'да' : 'нет';
-  document.getElementById('ui-t').textContent    = tired  ? 'да' : 'нет';
-  document.getElementById('ui-f').textContent    = hasFood ? 'да' : 'нет';
-  document.getElementById('ui-hunt').textContent = huntTicks;
-}
-
-function warriorW(a) {
-  if (a === 'enemy')  { D = 2;   log('😈 Враг вплотную!'); }
-  if (a === 'far')    { D = 20;  log('💨 Враг ушёл.'); }
-  if (a === 'dmg')    { HP = Math.max(0, HP - 80); log(`💥 Ранение! (-80 HP, теперь ${HP})`); }
-  if (a === 'heal')   { HP = 100; log('✨ Исцеление.'); }
-  if (a === 'hungry') { hungry = true; hasFood = false; log('🍖 Живот урчит. (Еды нет)'); }
-  if (a === 'tired')  { tired = true;  log('😴 Глаза слипаются.'); }
-  tickWarrior();
-}
-
-function resetWarrior() {
-  D = 15; HP = 100; hungry = false; tired = false; hasFood = true; huntTicks = 0;
-}
-
-// ============================================================
-//  PAC-MAN
-// ============================================================
-const PW = 11, PH = 7;
-let pacman, ghost, pills, powerPills, powerTimer;
-const PWALLS = new Set(['3,2','3,3','3,4','7,2','7,3','7,4','5,3']);
-
-function pIsWall(x,y) { return x<0||x>=PW||y<0||y>=PH||PWALLS.has(`${x},${y}`); }
-function pMoveToward(from,to) {
-  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-  let best=null, bd=Infinity;
-  for (const [dx,dy] of dirs) {
-    const nx=from.x+dx, ny=from.y+dy;
-    if (pIsWall(nx,ny)) continue;
-    const d=Math.abs(nx-to.x)+Math.abs(ny-to.y);
-    if (d<bd) { bd=d; best={x:nx,y:ny}; }
-  }
-  if (best) { from.x=best.x; from.y=best.y; return true; }
-  return false;
-}
-function pMoveAway(from,to) {
-  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-  let best=null, bd=-1;
-  for (const [dx,dy] of dirs) {
-    const nx=from.x+dx, ny=from.y+dy;
-    if (pIsWall(nx,ny)) continue;
-    const d=Math.abs(nx-to.x)+Math.abs(ny-to.y);
-    if (d>bd) { bd=d; best={x:nx,y:ny}; }
-  }
-  if (best) { from.x=best.x; from.y=best.y; return true; }
-  return false;
-}
-function pGeneratePills() {
-  const out=[]; const taken=new Set([`${pacman.x},${pacman.y}`,`${ghost.x},${ghost.y}`]);
-  for (const w of PWALLS) taken.add(w);
-  let att=0;
-  while (out.length<12 && att<200) {
-    att++;
-    const x=Math.floor(Math.random()*PW), y=Math.floor(Math.random()*PH);
-    const k=`${x},${y}`;
-    if (taken.has(k)) continue;
-    taken.add(k); out.push({x,y});
-  }
-  return out;
-}
-
-const PROG_PACMAN = `// Книга §1.4, Рис. 1.12 — Combative Behavior
-// Fallback( Sequence(GhostClose, Fallback(Sequence(GhostScared, Chase), Avoid)), EatPills )
-
-[ПризракБлизко]
-[ПризракИспуган] [ГнатьсяЗаПризраком] [УбегатьОтПризрака]
-
-[СъестьТаблетку]`;
-
-const regPacman = {
-  "ПризракБлизко": { type:'condition', fn: () => {
-    const d = Math.abs(ghost.x-pacman.x)+Math.abs(ghost.y-pacman.y);
-    return d<=3 ? S.SUCCESS : S.FAILURE;
-  }},
-  "ПризракИспуган": { type:'condition', fn: () => powerTimer>0 ? S.SUCCESS : S.FAILURE },
-  "ГнатьсяЗаПризраком": { type:'action', fn: () => { pMoveToward(pacman, ghost); return S.SUCCESS; }},
-  "УбегатьОтПризрака": { type:'action', fn: () => { pMoveAway(pacman, ghost); return S.SUCCESS; }},
-  "СъестьТаблетку": { type:'action', fn: () => {
-    const all = pills.concat(powerPills);
-    if (!all.length) return S.FAILURE;
-    let best=null, bd=Infinity;
-    for (const p of all) {
-      const d=Math.abs(p.x-pacman.x)+Math.abs(p.y-pacman.y);
-      if (d<bd) { bd=d; best=p; }
-    }
-    if (!best) return S.FAILURE;
-    pMoveToward(pacman, best);
-    if (pacman.x===best.x && pacman.y===best.y) {
-      if (pills.includes(best)) pills = pills.filter(p=>p!==best);
-      else if (powerPills.includes(best)) {
-        powerPills = powerPills.filter(p=>p!==best);
-        powerTimer = 20;
-        log('⚡ Power pill!', 'sys');
-      }
-    }
-    return S.SUCCESS;
-  }},
-};
-
-function pMoveGhost() {
-  if (powerTimer>0) pMoveAway(ghost, pacman);
-  else pMoveToward(ghost, pacman);
-}
-
-function renderPacman() {
-  const grid = document.getElementById('pacman-grid');
+function renderMap() {
+  const grid = document.getElementById('map-grid');
   grid.innerHTML = '';
-  for (let y=0; y<PH; y++) for (let x=0; x<PW; x++) {
-    const c = document.createElement('div');
-    c.className = 'cell';
-    if (PWALLS.has(`${x},${y}`)) c.classList.add('wall');
-    else if (x===pacman.x && y===pacman.y) c.textContent = powerTimer>0 ? '🔵' : '🟡';
-    else if (x===ghost.x && y===ghost.y) c.textContent = powerTimer>0 ? '🟣' : '👻';
-    else if (pills.some(p=>p.x===x&&p.y===y)) c.innerHTML = '<div class="pill"></div>';
-    else if (powerPills.some(p=>p.x===x&&p.y===y)) c.innerHTML = '<div class="power-pill"></div>';
-    grid.appendChild(c);
-  }
-  document.getElementById('ui-pills').textContent = pills.length + (powerPills.length ? ' +⚡' : '');
-  document.getElementById('ui-power').textContent = powerTimer;
-}
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) {
+      const c = document.createElement('div');
+      c.className = 'cell';
+      const isRover = x === world.rover.x && y === world.rover.y;
+      const isBase = x === MAP.base.x && y === MAP.base.y;
+      const isCharger = x === MAP.charger.x && y === MAP.charger.y;
+      const isClient = x === MAP.client.x && y === MAP.client.y;
 
-function tickPacman() {
-  pMoveGhost();
-  if (powerTimer>0) powerTimer--;
-  try { bt.tick(); } catch (e) { log('⚠️ ' + e.message, 'err'); }
-  if (pacman.x===ghost.x && pacman.y===ghost.y) {
-    if (powerTimer>0) { log('👻 Призрак съеден!', 'sys'); ghost={x:1,y:1}; powerTimer=0; }
-    else { log('💀 Pac-Man пойман!', 'err'); pacman={x:5,y:5}; ghost={x:1,y:1}; powerTimer=0; }
-  }
-  if (!pills.length) { log('🏆 Раунд выигран!', 'sys'); pills=pGeneratePills(); if (!powerPills.length) powerPills=[{x:9,y:1}]; }
-  renderPacman();
-}
+      if (isBase) c.classList.add('base');
+      else if (isCharger) c.classList.add('charger');
+      else if (isClient) c.classList.add('client');
 
-function pacmanW(a) {
-  if (a==='power') { powerTimer=20; log('⚡ Power pill на 20 тиков.', 'sys'); }
-  if (a==='ghost-near') {
-    const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-    for (const [dx,dy] of dirs) {
-      const nx=pacman.x+dx, ny=pacman.y+dy;
-      if (!pIsWall(nx,ny)) { ghost={x:nx,y:ny}; break; }
+      if (isRover) {
+        c.classList.add('rover');
+        if (isCharger) c.classList.add('charging');
+        c.textContent = world.frozen ? '🚫' : (isCharger ? '🔋' : '🚚');
+      } else if (isBase) c.textContent = '🏠';
+      else if (isCharger) c.textContent = '🔌';
+      else if (isClient) c.textContent = world.orderInProgress ? '📍' : '🏢';
+
+      grid.appendChild(c);
     }
   }
-  if (a==='ghost-far') ghost={x:1,y:1};
-  renderPacman();
 }
 
-function resetPacman() {
-  pacman = {x:5,y:5}; ghost = {x:1,y:1}; powerTimer = 0;
-  pills = pGeneratePills(); powerPills = [{x:9,y:1}];
+function renderStatus() {
+  document.getElementById('ui-battery').textContent = world.battery;
+  document.getElementById('ui-battery-bar').style.width = world.battery + '%';
+  document.getElementById('ui-gps').textContent = world.gpsOk ? 'OK' : 'НЕТ';
+  document.getElementById('ui-gps').style.color = world.gpsOk ? '#ffb74d' : '#e57373';
+
+  const order = world.orderInProgress ? 'в пути'
+    : world.orderIssued ? 'выдан'
+    : world.orderCancelled ? 'отменён'
+    : 'нет';
+  document.getElementById('ui-order').textContent = order;
+
+  document.getElementById('ui-cargo').textContent = world.cargoInside ? 'внутри' : 'нет';
+
+  const flags = [];
+  if (world.impact) flags.push('УДАР');
+  if (world.obstacleNear) flags.push('препятствие');
+  if (world.wheelsSlipping) flags.push('буксует');
+  if (world.frozen) flags.push('frozen');
+  if (world.sirenOn) flags.push('сирена');
+  if (world.dispatcherControl) flags.push('диспетчер');
+  document.getElementById('ui-flags').textContent = flags.length ? flags.join(', ') : '—';
 }
 
-// ============================================================
-//  MANIPULATOR (§1.5, Fig. 1.16) — через «переход вниз»
-// ============================================================
-const MW = 12, MH = 7;
-let robot, cube, goal, holding;
-
-// Книга: Fallback( GreenCubeOnGoal, Sequence(Pick, Approach, Place) )
-// Наш DSL: implicit sequence (§3.2) — порядок задан условиями в заголовках.
-//
-// G1: куб на цели? → SUCCESS
-// G2: не держу → pick (если близко) ИЛИ approach cube (если далеко)
-// G3: держу    → approach goal (если далеко) ИЛИ place (если близко)
-//
-// Никаких all/any. Только группы и правила. «Переход вниз» делает всю работу:
-// G2 гарантирует, что мы не попадём в G3 без куба в руке; G3 гарантирует,
-// что не начнём place, пока не подошли к цели. Это и есть Sequence,
-// реализованный через Fallback (implicit sequence, §3.2 книги).
-
-const PROG_MANIPULATOR = `// §1.5, Рис. 1.16 — implicit sequence через «переход вниз»
-
-[ЗеленыйКубНаЦели]
-[УжеГотово]
-
-[not [ДержуЗеленыйКуб]]
-[КубБлизко] [СхватитьКуб] [ПодойтиККубу]
-
-[ДержуЗеленыйКуб]
-[БлизкоКели] [ПоставитьКуб]
-[not [БлизкоКели]] [ПодойтиКЦели]`;
-
-function mAdj(a, b) { return Math.abs(a.x-b.x)+Math.abs(a.y-b.y) <= 1; }
-function mMoveToward(from, to) {
-  const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
-  let best=null, bd=Infinity;
-  for (const [dx,dy] of dirs) {
-    const nx=from.x+dx, ny=from.y+dy;
-    if (nx<0||nx>=MW||ny<0||ny>=MH) continue;
-    const d=Math.abs(nx-to.x)+Math.abs(ny-to.y);
-    if (d<bd) { bd=d; best={x:nx,y:ny}; }
-  }
-  if (best) { from.x=best.x; from.y=best.y; }
-}
-
-const regManipulator = {
-  "ЗеленыйКубНаЦели": { type:'condition', fn: () => (cube.x===goal.x && cube.y===goal.y) ? S.SUCCESS : S.FAILURE },
-  "ДержуЗеленыйКуб":  { type:'condition', fn: () => holding ? S.SUCCESS : S.FAILURE },
-  "КубБлизко":        { type:'condition', fn: () => mAdj(robot, cube) ? S.SUCCESS : S.FAILURE },
-  "БлизкоКели":       { type:'condition', fn: () => mAdj(robot, goal) ? S.SUCCESS : S.FAILURE },
-
-  "УжеГотово":       { type:'action', fn: () => S.SUCCESS },
-  "ПодойтиККубу":    { type:'action', fn: () => { mMoveToward(robot, cube); return S.SUCCESS; }},
-  "СхватитьКуб":     { type:'action', fn: () => {
-    if (mAdj(robot, cube)) { holding = true; log('🤖 Схватил куб!', 'sys'); return S.SUCCESS; }
-    return S.FAILURE;
-  }},
-  "ПодойтиКЦели":    { type:'action', fn: () => { mMoveToward(robot, goal); return S.SUCCESS; }},
-  "ПоставитьКуб":    { type:'action', fn: () => {
-    if (holding && mAdj(robot, goal)) {
-      holding = false; cube = { x: goal.x, y: goal.y };
-      log('🎯 Куб поставлен на цель!', 'sys'); return S.SUCCESS;
-    }
-    return S.FAILURE;
-  }},
-};
-
-function renderManipulator() {
-  const grid = document.getElementById('manipulator-grid');
-  grid.innerHTML = '';
-  for (let y=0; y<MH; y++) for (let x=0; x<MW; x++) {
-    const c = document.createElement('div');
-    c.className = 'cell';
-    const isGoal = (x===goal.x && y===goal.y);
-    const isDone = (x===cube.x && y===cube.y && x===goal.x && y===goal.y);
-    if (isGoal) c.classList.add(isDone ? 'goal-done' : 'goal');
-    if (x===robot.x && y===robot.y) {
-      c.textContent = '🤖';
-      if (holding) c.classList.add('holding');
-    } else if (x===cube.x && y===cube.y && !holding) {
-      c.textContent = '🟩';
-    } else if (isGoal && !isDone) {
-      c.textContent = '🎯';
-    }
-    grid.appendChild(c);
-  }
-  document.getElementById('ui-robot').textContent = `(${robot.x},${robot.y})`;
-  document.getElementById('ui-cube').textContent  = holding ? 'в руке' : `(${cube.x},${cube.y})`;
-  document.getElementById('ui-holding').textContent = holding ? 'да' : 'нет';
-  const done = cube.x===goal.x && cube.y===goal.y;
-  document.getElementById('banner-done').classList.toggle('show', done);
-}
-
-function tickManipulator() {
-  try { bt.tick(); } catch (e) { log('⚠️ ' + e.message, 'err'); }
-  renderManipulator();
-}
-
-function manipulatorW(a) {
-  if (a === 'drop') {
-    if (holding) {
-      holding = false;
-      const dirs = [[2,0],[-2,0],[0,2],[0,-2]];
-      const [dx,dy] = dirs[Math.floor(Math.random()*4)];
-      let nx = robot.x+dx, ny = robot.y+dy;
-      nx = Math.max(0, Math.min(MW-1, nx));
-      ny = Math.max(0, Math.min(MH-1, ny));
-      cube = { x: nx, y: ny };
-      log('💨 Куб выпал из руки!', 'err');
-    } else log('Куб не в руке.', 'err');
-  }
-  if (a === 'teleport-cube') {
-    cube = { x: Math.floor(Math.random()*MW), y: Math.floor(Math.random()*MH) };
-    holding = false;
-    log('🎲 Куб перемещён.', 'sys');
-  }
-  if (a === 'teleport-goal') {
-    goal = { x: Math.floor(Math.random()*MW), y: Math.floor(Math.random()*MH) };
-    log('🎯 Цель перемещена.', 'sys');
-  }
-  renderManipulator();
-}
-
-function resetManipulator() {
-  robot = { x: 1, y: 5 };
-  cube  = { x: 5, y: 2 };
-  goal  = { x: 10, y: 5 };
-  holding = false;
-}
-
-// ============================================================
-//  СИМУЛЯЦИЯ
-// ============================================================
-let mode = 'manipulator';
-let bt = null;
-let simTimer = null;
-let tickCount = 0;
-
-const TICK_MS = { warrior: 1200, pacman: 400, manipulator: 300 };
-
-function getProgram() {
-  return mode === 'warrior' ? PROG_WARRIOR
-       : mode === 'pacman'  ? PROG_PACMAN
-                            : PROG_MANIPULATOR;
-}
-function getReg() {
-  return mode === 'warrior' ? regWarrior
-       : mode === 'pacman'  ? regPacman
-                            : regManipulator;
+function render() {
+  renderStatus();
+  renderMap();
 }
 
 function tickOnce() {
   if (!bt) return;
   tickCount++;
-  if (mode === 'warrior') tickWarrior();
-  else if (mode === 'pacman') tickPacman();
-  else tickManipulator();
+  try { bt.tick(); } catch (e) { log('⚠️ ' + e.message, 'err'); }
+  render();
 }
 
 function startSim() {
   if (simTimer) return;
-  simTimer = setInterval(tickOnce, TICK_MS[mode]);
+  simTimer = setInterval(tickOnce, TICK_MS);
   const b = document.getElementById('btn-sim');
   b.textContent = '⏸ Стоп'; b.classList.add('running');
-  log('▶ Симуляция запущена.', 'sys');
+  log('▶ Симуляция запущена', 'sys');
 }
 function stopSim() {
   if (!simTimer) return;
   clearInterval(simTimer); simTimer = null;
   const b = document.getElementById('btn-sim');
   b.textContent = '▶ Старт'; b.classList.remove('running');
-  log('⏸ Симуляция остановлена.', 'sys');
+  log('⏸ Симуляция остановлена', 'sys');
 }
 function toggleSim() { simTimer ? stopSim() : startSim(); }
 
 function resetWorld() {
-  if (mode === 'warrior') { resetWarrior(); tickWarrior(); }
-  else if (mode === 'pacman') { resetPacman(); renderPacman(); }
-  else { resetManipulator(); renderManipulator(); }
-  if (bt) { bt.state.clear(); bt.running.clear(); }
-  tickCount = 0;
-  log('🔄 Мир сброшен.', 'sys');
-}
-
-function setMode(m) {
   if (simTimer) stopSim();
-  mode = m;
-  document.getElementById('src').textContent = getProgram();
-  document.getElementById('program-title').textContent =
-    m === 'warrior'      ? 'Программа воина (Variant A)' :
-    m === 'pacman'       ? 'Pac-Man — книга §1.4 (Рис. 1.12)' :
-                           'Манипулятор — книга §1.5 (Рис. 1.16)';
-  document.getElementById('world-warrior').style.display     = m==='warrior'?'':'none';
-  document.getElementById('world-pacman').style.display      = m==='pacman'?'':'none';
-  document.getElementById('world-manipulator').style.display = m==='manipulator'?'':'none';
-  document.getElementById('events-warrior').style.display    = m==='warrior'?'':'none';
-  document.getElementById('events-pacman').style.display     = m==='pacman'?'':'none';
-  document.getElementById('events-manipulator').style.display= m==='manipulator'?'':'none';
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.id === 'mode-' + m));
-
-  resetWorld();
-  bt = new FluentBT(getProgram(), getReg());
-
-  log(`Сценарий: ${m==='warrior'?'⚔️ Воин':m==='pacman'?'🟡 Pac-Man':'🤖 Манипулятор'}`, 'sys');
-  if (m === 'manipulator') {
-    log('📖 Три группы, ноль all/any. Sequence через «переход вниз» (§3.2 implicit sequence).', 'sys');
-    log('💡 Нажмите «▶ Старт», затем «💨 Куб выпал» во время переноса — дерево само перезапустит pick.', 'sys');
-  }
+  world.rover = { x: MAP.base.x, y: MAP.base.y };
+  world.battery = 100;
+  world.gpsOk = true;
+  world.impact = false;
+  world.obstacleNear = false;
+  world.wheelsSlipping = false;
+  world.wheelsRetries = 0;
+  world.frozen = false;
+  world.sirenOn = false;
+  world.orderInProgress = false;
+  world.orderIssued = false;
+  world.orderCancelled = false;
+  world.dispatcherControl = false;
+  world.cargoInside = true;
+  world.clientOut = false;
+  world.routeToClient = false;
+  world.routeToCharger = false;
+  if (bt) bt.reset();
+  tickCount = 0;
+  log('🔄 Мир сброшен', 'sys');
+  render();
 }
 
-try { setMode('manipulator'); }
-catch (e) { log('💥 Ошибка: ' + e.message, 'err'); }
+// ============================================================
+//  СОБЫТИЯ (переименовано из event → triggerEvent)
+// ============================================================
+function triggerEvent(name) {
+  switch (name) {
+    case 'new-order':
+      if (world.orderInProgress) { log('Заказ уже в пути', 'err'); break; }
+      world.orderInProgress = true;
+      world.orderIssued = false;
+      world.orderCancelled = false;
+      world.dispatcherControl = false;
+      world.cargoInside = true;
+      world.clientOut = false;
+      world.routeToClient = false;
+      log('📦 Новый заказ получен', 'sys');
+      break;
+
+    case 'client-out':
+      if (!at(MAP.client)) { log('Ровер ещё не у клиента', 'err'); break; }
+      world.clientOut = true;
+      log('👤 Клиент вышел', 'sys');
+      break;
+
+    case 'client-cancel':
+      world.orderCancelled = true;
+      world.orderInProgress = false;
+      world.cargoInside = false;
+      world.clientOut = false;
+      log('❌ Клиент отменил заказ', 'err');
+      break;
+
+    case 'impact':
+      world.impact = true;
+      log('💥 Удар!', 'err');
+      break;
+
+    case 'obstacle':
+      world.obstacleNear = !world.obstacleNear;
+      log(world.obstacleNear ? '🚧 Препятствие близко' : '🚧 Препятствие убрано');
+      break;
+
+    case 'low-battery':
+      world.battery = 20;
+      log('🔋 Батарея разряжена до 20%', 'err');
+      break;
+
+    case 'gps-lost':
+      world.gpsOk = false;
+      log('📡 GPS потерян', 'err');
+      break;
+
+    case 'gps-ok':
+      world.gpsOk = true;
+      log('📡 GPS восстановлен', 'sys');
+      break;
+
+    case 'slip':
+      world.wheelsSlipping = true;
+      world.wheelsRetries = 0;
+      log('🛞 Колёса буксуют', 'err');
+      break;
+
+    case 'dispatcher':
+      world.dispatcherControl = true;
+      log('🎮 Диспетчер взял управление', 'err');
+      break;
+  }
+  render();
+}
+
+// ============================================================
+//  ИНИТ
+// ============================================================
+try {
+  document.getElementById('src').textContent = PROGRAM;
+  bt = new FluentBT(PROGRAM, registry);
+  render();
+  log('🎬 FluentBT — Ровер-доставщик загружен', 'sys');
+  log('💡 Нажмите «📦 Новый заказ» → «▶ Старт», чтобы увидеть полный цикл доставки', 'sys');
+  log('💡 События слева (удар, GPS, буксовка) прерывают текущее поведение', 'sys');
+} catch (e) {
+  log('💥 Ошибка: ' + e.message, 'err');
+}
 </script>
 </body>
 </html>
