@@ -1,0 +1,5 @@
+// Fallback( Sequence(GhostClose, Fallback(Sequence(GhostScared, Chase), Avoid)), EatPills )
+[ПризракБлизко]
+[ПризракИспуган] [ГнатьсяЗаПризраком] [УбегатьОтПризрака]
+
+[СъестьТаблетку]
